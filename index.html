@@ -16,14 +16,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
   const firebaseConfig = {
-  apiKey: "AIzaSyDCG1vN7A3u2BxZD6ykbdIXAZhB34YkglY",
-  authDomain: "wedding-1a144.firebaseapp.com",
-  projectId: "wedding-1a144",
-  storageBucket: "wedding-1a144.firebasestorage.app",
-  messagingSenderId: "1051064785649",
-  appId: "1:1051064785649:web:70f19b3be8da7f1456a750"
-};
-
+    apiKey: "AIzaSyDCG1vN7A3u2BxZD6ykbdIXAZhB34YkglY",
+    authDomain: "wedding-1a144.firebaseapp.com",
+    projectId: "wedding-1a144",
+    storageBucket: "wedding-1a144.firebasestorage.app",
+    messagingSenderId: "1051064785649",
+    appId: "1:1051064785649:web:70f19b3be8da7f1456a750"
+  };
 </script>
 
 <style>
@@ -232,7 +231,8 @@
 
   /* ---------- Checklist ---------- */
   .cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;}
-  .cat-card .cat-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .cat-card .cat-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;}
+  .cat-card .cat-head h3{flex:1;min-width:0;}
   .cat-card h3{margin:0;font-size:19px;color:var(--maroon-dark);}
   .cat-count{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
   .item-row{
@@ -338,6 +338,9 @@
     <div class="card">
       <h3 style="margin-top:0;color:var(--maroon-dark);">Checklist progress by category</h3>
       <div id="dashboardBars"></div>
+    </div>
+    <div style="text-align:right;">
+      <button onclick="resetToDefaults()" style="background:none;border:1px solid var(--border);color:var(--ink-soft);border-radius:8px;padding:6px 12px;font-size:11.5px;">↺ Reset everything to starting template</button>
     </div>
   </div>
 
@@ -455,9 +458,7 @@ function defaultData(){
       cat('Photography & Video', ['Photographer booking','Videography / cinematic team','Pre-wedding shoot','Drone coverage']),
       cat('Invitations & Stationery', ['Wedding card design & print','Digital invite (WhatsApp)','Save-the-date','Guest list finalized']),
       cat('Music & Entertainment', ['DJ / band for baraat','Dhol players','Sangeet choreographer','Fireworks / anaar']),
-      cat('Priest & Rituals Logistics', ['Pandit / Priest booking','Puja samagri list','Havan kund arrangement','Muhurat timing confirmed']),
       cat('Guest Logistics', ['Accommodation for outstation guests','Transport / pickup','Welcome hampers','Return gifts / favors']),
-      cat('Legal & Documentation', ['Marriage registration','Name change documents']),
     ],
     guests: [],
     budget: [
@@ -465,7 +466,6 @@ function defaultData(){
       {id:uid(), category:'Catering', estimated:0, actual:0},
       {id:uid(), category:'Apparel & Jewelry', estimated:0, actual:0},
       {id:uid(), category:'Photography & Video', estimated:0, actual:0},
-      {id:uid(), category:'Priest & Rituals', estimated:0, actual:0},
       {id:uid(), category:'Music & Entertainment', estimated:0, actual:0},
       {id:uid(), category:'Invitations', estimated:0, actual:0},
       {id:uid(), category:'Guest Logistics', estimated:0, actual:0},
@@ -501,7 +501,7 @@ function initSync(){
   try{
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-    docRef = db.collection('shubh-vivah').doc('planner');
+    docRef = db.collection('wedding-7f3a9c2e').doc('planner-k2m91x');
     setSyncStatus('connecting…', false);
 
     docRef.onSnapshot(snap=>{
@@ -678,6 +678,7 @@ function renderChecklist(){
       <div class="cat-head">
         <h3>${escapeHtml(c.title)}</h3>
         <span class="cat-count">${done}/${c.items.length}</span>
+        <button class="del-btn" onclick="deleteCategory('${c.id}')" title="Remove entire category">🗑</button>
       </div>
       <div class="progress-track" style="margin-bottom:10px;"><div class="progress-fill" style="width:${c.items.length? Math.round(done/c.items.length*100):0}%"></div></div>
       <div class="item-list">
@@ -714,6 +715,14 @@ function addItem(catId, inputEl){
   inputEl.value='';
   queueSave(); renderChecklist(); renderDashboard();
 }
+function deleteCategory(catId){
+  const c = data.checklist.find(c=>c.id===catId);
+  if(!c) return;
+  if(!confirm(`Remove the "${c.title}" category and all ${c.items.length} item(s) in it? This can't be undone.`)) return;
+  data.checklist = data.checklist.filter(c=>c.id!==catId);
+  queueSave(); renderChecklist(); renderDashboard();
+}
+
 function addCategory(){
   const inp = document.getElementById('newCategoryInput');
   const val = inp.value.trim();
@@ -877,6 +886,15 @@ function deleteTodo(id){
 /* ---------------- Utils ---------------- */
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s){ return escapeHtml(s); }
+
+function resetToDefaults(){
+  if(!confirm('This erases ALL saved data (checklist ticks, guests, budget, vendors, to-dos) for EVERYONE with the link, and restores the original starting template. This cannot be undone.\n\nContinue?')) return;
+  if(!confirm('Really sure? This is permanent and affects everyone using this link right now.')) return;
+  data = defaultData();
+  applyingRemoteUpdate = false;
+  renderAll();
+  saveData();
+}
 
 function renderAll(){
   fillHeader();
